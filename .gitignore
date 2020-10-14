@@ -1,1 +1,7 @@
 .runjobs*
+*.png
+list.log
+myrms
+rj*.log
+runjobs.txt
+save

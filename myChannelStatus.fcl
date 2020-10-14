@@ -1,0 +1,125 @@
+tools.myChannelStatus: {
+  tool_type: ChannelStatusConfigTool
+  LogLevel: 2
+  DefaultIndex: 0
+  IndexVectors: [
+
+    # 0: Good.
+    [],
+
+    # Always bad
+    [4411, 4412, 9990, 11842],
+
+    # Always bad except pulser
+    [1, 2, 400, 401, 800, 801, 876, 1200, 2961,
+     5321, 5361, 5363, 6132, 7295, 7680, 7681, 8080, 8480, 9282, 9283, 9736, 10189, 11459,
+     12801, 13001, 13081],
+
+    # Intermittent bad ASIC.
+    [200, 202, 204, 206, 208, 991, 993, 995, 997, 999, 1829, 1831, 1833, 1835, 1837, 1839],
+
+    # Intermittent bad channel.
+    [2080, 3400, 4216,
+     4234, 4236, 4238, 4240, 4242,
+     4472, 4474, 4476, 4478,       4482,
+     8208, 8328, 9140,
+     10800, 10968, 11001, 11014, 11018, 11021, 11024, 11025,
+     11450, 11454, 11457, 11463, 11467, 11501, 11669, 11679, 12718, 12756, 12785, 12787, 14591],
+
+    # Intermittent bad pulser.
+    [3045, 4232, 9545, 9547, 9549, 9551, 9553, 9555, 13573, 13575, 13579],
+
+    # Bad after Dec 2018
+    [9260, 10033], 
+
+    # Bad after Sep 2019
+    [11469, 12704], 
+
+    # Bad after Jan 2020
+    [11517], 
+
+    # Bad after March.
+    [2382, 2383, 5031, 
+     8340, 8342, 8344, 8346, 8348, 9011, 9013, 9015, 9017, 9019, 10072, 10074, 10075, 10076, 10078, 10080, 10082,
+     11000, 11183, 11194, 11468, 11926, 12454, 12456, 12646, 12647, 12648, 12649, 12650, 12651, 12652],
+
+    # Bad after April.
+    [2858, 3520, 3521, 3523, 3528,
+     4316, 4317, 4318, 4319],
+
+    # Bad in 2018 survey excluding the above.
+    [
+        4,  # femb311u36, very sticky pedestal 5308-76
+     1632,  # femb320x33, very sticky pedestal 5308-76
+     2169,  # femb302x07, Mostly stuck on one bad code, 5308-76
+     2450,  # femb308x14, Very noisy (1000 ADC) in run 5759 (20nov2019)
+     3541,  # femb516v22, very sticky--signal near zero half the time (5308-81)
+     3543,  # femb516v24, very sticky--signal near zero half the time (5308-81)
+     3661,  # femb513v22, most signal near zero (5308-81)
+     3663,  # femb513v24, most signal near zero (5308-81)
+     4061,  # femb503v22, most signal near zero (5308-81)
+     4063,  # femb503v24, most signal near zero (5308-81)
+     4141,  # femb501v22, signal near zero half the time (5308-81)
+     4143,  # femb501v24, signal sometimes near zero (5308-81)
+     4377,  # femb516x26, very sticky pedestal
+     4379,  # femb516x28, very sticky pedestal
+     4381,  # femb516x30, very sticky pedestal
+     4383,  # femb516x32, very sticky pedestal
+     4385,  # femb516x34, very sticky pedestal
+     4387,  # femb516x36, very sticky pedestal
+     4521,  # femb513x26, very sticky pedestal
+     4523,  # femb513x28, very sticky pedestal
+     4525,  # femb513x30, very sticky pedestal
+     4527,  # femb513x32, very sticky pedestal
+     4529,  # femb513x34, very sticky pedestal
+     4531,  # femb513x36, very sticky pedestal
+     4652,  # femb501x36, very sticky pedestal
+     4654,  # femb501x34, very sticky pedestal
+     4656,  # femb501x32, very sticky pedestal
+     4658,  # femb501x30, very sticky pedestal
+     4660,  # femb501x28, very sticky pedestal
+     4748,  # femb503x36, very sticky pedestal
+     4750,  # femb503x34, very sticky pedestal
+     4752,  # femb503x32, very sticky pedestal
+     4754,  # femb503x30, very sticky pedestal
+     4756,  # femb503x28, very sticky pedestal
+     4758,  # femb503x26, very sticky pedestal
+     8501,  # femb620v22, very sticky pedestal
+     8503,  # femb620v24, very sticky pedestal
+     8821,  # femb612v22, very sticky pedestal
+     8823,  # femb612v24, very sticky pedestal
+     9261,  # femb601v22, very sticky pedestal
+     9263,  # femb601v24, very sticky pedestal
+     9305,  # femb620x26, very sticky pedestal
+     9307,  # femb620x28, very sticky pedestal
+     9309,  # femb620x30, very sticky pedestal
+     9311,  # femb620x32, very sticky pedestal
+     9313,  # femb620x34, very sticky pedestal
+     9315,  # femb620x36, very sticky pedestal
+     9689,  # femb612x26, very sticky pedestal
+     9691,  # femb612x28, very sticky pedestal
+     9693,  # femb612x30, very sticky pedestal
+     9695,  # femb612x32, very sticky pedestal
+     9697,  # femb612x34, very sticky pedestal
+     9699,  # femb612x36, very sticky pedestal
+     9772,  # femb601x26, very sticky pedestal
+     9774,  # femb601x28, very sticky pedestal
+     9776,  # femb601x30, very sticky pedestal
+     9778,  # femb601x32, very sticky pedestal
+     9780,  # femb601x34, very sticky pedestal
+     9782,  # femb601x36, very sticky pedestal
+    10102,  # femb608x42, mostly stuck on one code
+    10697,  # femb102u23, mostly stuck on a few classic codes
+    10907,  # femb107u13, mostly stuck on one code
+    11203,  # femb116v04, stuck on many classic codes
+    11270,  # femb115v31, stuck on many classic codes
+    11902,  # femb119x15, stuck on two classic codes
+    12324,  # femb101x44, stuck on many classic codes
+    12333,  # femb101x35, stuck on many classic codes
+    12744,  # femb109x08, stuck on many classic codes
+    13363   # femb405u37, very noisy, nosignal 5308-76-4800
+    ],
+
+    []
+  ]
+}

@@ -1,0 +1,6 @@
+#include "load_dataprep.fcl"
+
+#include "myChannelStatus.fcl"
+
+services.ChannelStatusService: @local::pdsp_channel_status_nov2019
+

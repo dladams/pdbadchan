@@ -1,0 +1,3 @@
+FRUN=$1
+while [ ${#FRUN} -lt 6 ]; do FRUN=0$FRUN; done
+grep "event time" myrms/np04_run${FRUN}_evts000000-001000/event000000-000100/run.log | head -1
