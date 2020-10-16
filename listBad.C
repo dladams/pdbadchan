@@ -12,18 +12,23 @@ using NameByIndex = std::map<Index, Name>;
 using NameVector = vector<Name>;
 using FloatVector = vector<float>;
 
-int chanColor(Index icha) {
+int chanColor(Index icha, Index& kcol) {
   const string myname = "chanColor: ";
   LineColors lc;
-  static auto psta = ptm->getPrivate<IndexMapTool>("channelStatusFromConfig");
-  if ( psta ) {
-    int cstat = psta->get(icha);
-    //cout << myname << "Status for channel " << icha << " is " << cstat << endl;
-    if ( cstat == 1 ) return lc.red();
-  } else {
-    cout << myname << "WARNING: Unable to load channel status tool" << endl;
+  // Use red for old bad, blue otherwise.
+  if ( kcol == 99 ) {
+    static auto psta = ptm->getPrivate<IndexMapTool>("channelStatusFromConfig");
+    if ( psta ) {
+      int cstat = psta->get(icha);
+      //cout << myname << "Status for channel " << icha << " is " << cstat << endl;
+      if ( cstat == 1 ) return lc.red();
+    } else {
+      cout << myname << "WARNING: Unable to load channel status tool" << endl;
+    }
+    return lc.blue();
   }
-  return lc.blue();
+  // Return the color for kcol and increment.
+  return lc.color(kcol++, 10);
 }
 
 // Pulser runs.
@@ -128,6 +133,25 @@ private:
   Index m_iview;
 };
 
+// Threshold for RMS to be bad depends on run, TPC set and view.
+double rmsThreshold(Index run, Index itps, string sview) {
+  double minrmsZ =  4.0;
+  double minrmsI =  4.0;
+  double minrmsC =  2.0;
+  double minrms = sview == "u" ? minrmsI
+                : sview == "v" ? minrmsI
+                : sview == "z" ? minrmsZ
+                : sview == "c" ? minrmsC
+                : (abort(), -1.0);
+  if ( run == 9060 ) minrms = 2.0;
+  if ( run == 9070 ) minrms = 2.0;
+  if ( run == 9070 && itps == 3 ) minrms = 1.9;
+  if ( run == 9337 ) minrms = 2.0;
+  //if ( run == 11142 ) minrms = 2.0;
+  if ( run == 11296 && itps == 0 ) minrms = 2.0;
+  return minrms;
+}
+
 TGraph* getGraph(int run, int itps) {
   string srun = to_string(run);
   while ( srun.size() < 6 ) srun = "0" + srun;
@@ -155,8 +179,12 @@ Index getRMS(int run, int itps, int dbg, RunsByChan& badchas, RunRmsByChan& badr
   TGraph* pg = getGraph(run, itps);
   int npt = pg == nullptr ? 0 : pg->GetN();
   cout << "Run" << setw(6) << run << " TPS " << itps << " point count is" << setw(5) << npt << endl;
+  if ( npt == 0 ) {
+    cout << "ERROR: APA is missing." << endl;
+    abort();
+  }
   if ( npt != 2560 ) {
-    cout << "WARNING: Unexpected APA size: " << npt << endl;
+    cout << "WARNING: Run " << run << " TPC set " << itps << " has unexpected channel count: " << npt << endl;
   }
   if ( pg == nullptr ) return 0;
   // Fetch the RMS for each channel in the TPS. Use -1 if channel is missing.
@@ -176,13 +204,6 @@ Index getRMS(int run, int itps, int dbg, RunsByChan& badchas, RunRmsByChan& badr
   }
   // Loop over channels and flag those tha are bad.
   bool isLeft = itps%2;
-  double minrmsTpc = 4.0;
-  if ( run == 9060 ) minrmsTpc = 2.0;
-  if ( run == 9070 ) minrmsTpc = 2.0;
-  if ( run == 9070 && itps == 3 ) minrmsTpc = 1.9;
-  if ( run == 9337 ) minrmsTpc = 2.0;
-  //if ( run == 11142 ) minrmsTpc = 2.0;
-  if ( run == 11296 && itps == 0 ) minrmsTpc = 2.0;
   Index nbad = 0;
   Index ipla = 9999;
   using RmsDist = std::multiset<float>;
@@ -194,8 +215,9 @@ Index getRMS(int run, int itps, int dbg, RunsByChan& badchas, RunRmsByChan& badr
     TpsPlaneDesc tpd = TpsPlaneDesc::fromChannel(icha);
     string sview = tpd.viewName();
     Index itpv = tpd.detIndex();
-    double minrms = (sview == "c" ? 2.0 : minrmsTpc);
-    if ( rms >= 0.0 &&  rms < minrms ) {
+    double minrms = rmsThreshold(run, itps, sview);
+    double maxrms = 40.0;
+    if ( rms >= 0.0 && (rms < minrms || rms > maxrms) ) {
       ++nbad;
       if ( dbg ) cout << sview << setw(7) << run << setw(6) << icha << ": " << rms << endl;
       badchas[icha].push_back(run);
@@ -252,12 +274,30 @@ getBadCategory(const IndexVector& runs, const NameByIndex& runtypes, Index npulA
   return 0;
 }
 
-void listBad(Index drawStat =999, int dbg =0) {
+void listBad(Index drawStat =999, float plotmax = 40.0, int dbg =0) {
   static auto pchs = ptm->getPrivate<IndexMapTool>("myChannelStatus");
   if ( ! pchs ) {
     cout << "ERROR: Unable to find channel status tool." << endl;
     abort();
   }
+  NameVector badCats = {
+    "Good",
+    "All bad",
+    "All bad except pulser",
+    "Intermittent bad ASIC",
+    "Intermittent bad channel",
+    "Intermittent bad pulser",
+    "Bad after Dec 2018",
+    "Bad after Sep 2019",
+    "Bad after Jan 2020",
+    "Bad after Mar 2020",
+    "Bad after Apr 2020",
+    "All noisy",
+    "Intermittent noisy",
+    "Bad in Nov 2019 survey",
+    "Noisy in Dec 2018 survey",
+    "????"
+  };
   RunsByChan badchas;
   RunRmsByChan badrmss;
   RmsRangesByPlaneByRun ranges;
@@ -294,7 +334,7 @@ void listBad(Index drawStat =999, int dbg =0) {
       spatAll += "_";
     } else if ( type == "pulser" ) {
       ++npulser;
-      spatAll += ".";
+      spatAll += "-";
     } else {
       cout << "Run " << run << " has invalid type " << type << endl;
       abort();
@@ -333,9 +373,10 @@ void listBad(Index drawStat =999, int dbg =0) {
       TpsPlaneDesc tpd(itps, iview);
       string spla = tpd.planeName();
       Index itpv = tpd.detIndex();
+      string sview = tpd.viewName();
       TPadManipulator* pman = pmantop->man(ipad++);
       pltmans[spla] = pman;
-      // Create histogram for axis and labeels.
+      // Create histogram for axis and labels.
       Index nrun = ranges.size();
       string hnam = "pha" + spla;
       string sttl = tpd.planeLabel();
@@ -347,16 +388,19 @@ void listBad(Index drawStat =999, int dbg =0) {
       // Add graphs showing range limits.
       TGraph* pg1 = new TGraph();
       TGraph* pg2 = new TGraph();
+      TGraph* pgt = new TGraph();
       pg1->SetLineWidth(3);
       pg2->SetLineWidth(3);
+      pgt->SetLineWidth(2);
       pg1->SetLineColor(3);
       pg2->SetLineColor(3);
-      pg1->SetTitle(sttl.c_str());
-      pg2->SetTitle(sttl.c_str());
-      pg1->GetXaxis()->SetTitle("Run index");
-      pg2->GetXaxis()->SetTitle("Run index");
-      pg1->GetYaxis()->SetTitle("RMS [ADC count]");
-      pg2->GetYaxis()->SetTitle("RMS [ADC count]");
+      pgt->SetLineColor(1);
+      pgt->SetLineStyle(3);
+      for ( TGraph* pg : {pg1, pg2, pgt} ) {
+        pg->SetTitle(sttl.c_str());
+        pg->GetXaxis()->SetTitle("Run index");
+        pg->GetYaxis()->SetTitle("RMS [ADC count]");
+      }
       // Loop over runs.
       for ( const auto& irbp : ranges ) {
         Index run = irbp.first;
@@ -366,9 +410,11 @@ void listBad(Index drawStat =999, int dbg =0) {
         if ( iran != rangesByPlane.end() ) {
           float y1 = iran->second.first;
           float y2 = iran->second.second;
+          float yt = rmsThreshold(run, itps, sview);
           if ( y2 >= 0.0 ) {
             pg1->SetPoint(pg1->GetN(), xrun, y1);
             pg2->SetPoint(pg2->GetN(), xrun, y2);
+            pgt->SetPoint(pgt->GetN(), xrun, yt);
           }
           //cout << "Central: " << xrun << ": " << y1 << ", " << y2 << endl;
         }
@@ -376,38 +422,60 @@ void listBad(Index drawStat =999, int dbg =0) {
       if ( pg1->GetN() ) {
         pman->add(pg1, "L");
         pman->add(pg2, "L");
+        pman->add(pgt, "L");
       } else {
         cout << "ERROR: No ranges found for plane " << tpd.planeName() << endl;
       }
-      pman->setRangeY(0, 40);
+      pman->setRangeY(0, plotmax);
       pman->addAxis();
       pman->setBinLabelsX(binlabs);
+      // Add legend.
+      string stxt = "Channels found bad";
+      if ( drawStat < 999 ) {
+        stxt += " flagged \"" + badCats[drawStat] + "\"";
+      }
+      TLatex* ptxt = new TLatex(0.12, 0.87, stxt.c_str());
+      ptxt->SetNDC();
+      ptxt->SetTextFont(42);
+      ptxt->SetTextSize(0.040);
+      pman->add(ptxt);
     }
   }
 
   // Add graph for each bad channel.
   string oldview;
-  Index oldtps = 99;
+  IndexVector kcols(24, 0);     // 0 to rotate colors, 99 for red/blue
+  IndexVector kmrks(24, 0);     // 0 to rotate colors, 99 for red/blue
+  Index kcol = 0;     // 0 to alternate, 99 for red/bue
+  Index kmrk = 0;
+  Index markers[] = {2, 5, 4, 26, 32, 28, 46, 30, 27, 44};
   vector<string> fnams;
   for ( auto chamap : badrmss ) {
     Index icha = chamap.first;
-    Index icol = chanColor(icha);
+    if ( drawStat < 999 ) {
+      Index icat = pchs->get(icha);
+      if ( icat != drawStat ) continue;
+    }
     TpsPlaneDesc tpd = TpsPlaneDesc::fromChannel(icha);
+    Index itpv = tpd.detIndex();
     string spla = tpd.planeName();
     string sttl = tpd.planeLabel() + "_chan" + to_string(icha);
+    int msty = markers[kmrks[itpv]];
+    kmrks[itpv] = (kmrks[itpv]+1)%10;
+    Index icol = chanColor(icha, kcols[itpv]);
     TPadManipulator* pman = pltmans[spla];
     TGraph* pga = new TGraph();
     TGraph* pgp = new TGraph();
     pga->SetMarkerColor(icol);
     pgp->SetMarkerColor(icol);
+    pga->SetMarkerStyle(msty);
     pga->SetLineColor(icol);
-    pga->SetMarkerStyle(2);
-    pgp->SetMarkerStyle(4);
+    pgp->SetMarkerStyle(25);
     pga->SetTitle(sttl.c_str());
     pga->GetXaxis()->SetTitle("Run index");
     pga->GetYaxis()->SetTitle("RMS [ADC count]");
     if ( pchs->get(icha) == 0 ) {
-      pga->SetLineColor(6);
+      pga->SetLineStyle(3);
     }
     for ( auto runrms : chamap.second ) {
       Index run = runrms.first;
@@ -418,10 +486,6 @@ void listBad(Index drawStat =999, int dbg =0) {
         pga->SetPoint(pga->GetN(), x, rms);
         if ( isPulser(run) ) pgp->SetPoint(pgp->GetN(), x, rms);
       }
-    }
-    if ( drawStat < 999 ) {
-      Index icat = pchs->get(icha);
-      if ( icat != drawStat ) continue;
     }
     pman->add(pga, "PL");
     pman->add(pgp, "P");
@@ -445,39 +509,43 @@ void listBad(Index drawStat =999, int dbg =0) {
   // Text report.
   auto psta = ptm->getPrivate<IndexMapTool>("channelStatusFromConfig");
   cout << "Bad channels (* denotes those in Nov 2019 bad channels list)" << endl;
-  cout << "  Plane Channel  ASICch  Runs" << endl;
+  cout << "  Plane Channel (chp)  ASICch  Runs" << endl;
   string splaold;
   ProtoduneChannelHelper chh(true);
   Index nbad = 0;
   Index nbadOld = 0;
   Index nbadNew = 0;
-  NameVector badCats = {
-    "Good",
-    "All bad",
-    "All bad except pulser",
-    "Intermittent bad ASIC",
-    "Intermittent bad channel",
-    "Intermittent bad pulser",
-    "Bad after Dec 2018",
-    "Bad after Sep 2019",
-    "Bad after Jan 2018",
-    "Bad after Mar 2020",
-    "Bad after Apr 2020",
-    "????"
-  };
   IndexVector badCounts(badCats.size(), 0);
   for ( const auto& irbc : badchas ) {
     Index icha = irbc.first;
+    Index ichr = icha%2560;
+    Index ichp = ichr;
+    if ( ichp >= 800 ) {
+      ichp -=800;
+      if ( ichp >= 800 ) {
+        ichp -= 800;
+        if ( ichp >= 480 ) {
+          ichp -= 480;
+          if ( ichp >= 480 ) abort();
+        }
+      }
+    }
     const IndexVector& runs = irbc.second;
     //Index icat = getBadCategory(runs, runtypes, npulser);
     Index icat = pchs->get(icha);
     ++badCounts[icat];
+    if ( drawStat < 999 ) {
+      Index icat = pchs->get(icha);
+      if ( icat != drawStat ) continue;
+    }
     string scat = badCats[icat];
     int cstat = psta->get(icha);
     bool wasBad = cstat == 1;
-    string sstat = wasBad ? "*" : " ";
+    bool wasNoisy = cstat == 2;
+    string sstat = wasBad ? "*" : wasNoisy ? "N" : " ";
     wasBad ? ++nbadOld : ++nbadNew;
     ++nbad;
+    // Build and show the the pattern.
     string spat = spatAll;
     for ( Index run : runs ) spat[runidxs[run]] = (runtypes[run] == "pulser" ? 'P' : '*');
     const RmsByRun& rmss = badrmss[icha];
@@ -492,25 +560,31 @@ void listBad(Index drawStat =999, int dbg =0) {
     //if ( spla == splaold ) spla = "     ";
     splaold = spla;
     string sach = chh.asicChannelName(icha);
-    cout << sstat << setw(6) << spla << setw(8) << icha << " " << sach << " ";
+    cout << sstat << setw(6) << spla << setw(8) << icha << " (" << setw(3) << ichp << ") " << sach << " ";
     cout << setw(30) << scat << ": ";
     cout << spat << " ";
-    for ( Index run : runs ) {
-      cout << setw(6) << run;
+    // List the bad runs
+    // If there are too many, list the good runs instead.
+    if ( runs.size() < 0.6*runidxs.size() ) {
+      for ( Index run : runs ) {
+        cout << setw(6) << run;
+      }
+    } else {
+      for ( auto krun : runidxs ) {
+        Index run = krun.first;
+        if ( std::count(runs.begin(), runs.end(), run) == 0 ) cout << setw(7) << -int(run);
+      }
     }
-    //if ( badAfterSpring2020().count(icha) ) {
-    //  for ( Index icnt=irbc.second.size(); icnt<8; ++icnt ) cout << "      ";
-    //  cout << "# Bad after March/April 2020";
-    //}
     cout << endl;
   }
   cout << "Nbad old:" << setw(4) << nbadOld << endl;
   cout << "Nbad new:" << setw(4) << nbadNew << endl;
   cout << "Nbad tot:" << setw(4) << nbad    << endl;
+  Index icnt = 0;
   for ( Index icat=0; icat<badCats.size(); ++icat ) {
     Name scat = badCats[icat];
     Index ncatBad = badCounts[icat];
-    cout << setw(30) << scat << ":" << setw(4) << ncatBad << endl;
+    cout << setw(3) << icnt++ << setw(30) << scat << ":" << setw(4) << ncatBad << endl;
   }
 }
 

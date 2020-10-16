@@ -2,24 +2,41 @@
   5141    beam 10-10
   5308    beam 10-15
   5461  cosmic 10-24
+  5700  cosmic 10-30
+  5777  cosmic 11-04
+  5810    beam 11-08
   5844    beam 11-12     # Last beam run
 # 5845  cosmic 11-12     # Immediately after beam off.
   6068  pulser 12-07p    # Pulser
   6118  cosmic 12-10     # End of 2018
-# 6535  cosmic 01-24     # Missing FEMBs
-# 6713  cosmic      RUNNING
+###### 2019 #####
+#  6533  cosmic 01-24??   RUNNING
+ 6535  cosmic 01-24     # Missing FEMBs
+  6700  cosmic 02-07
+# 6713  cosmic 02-07     # Missing APAs 4-6
 # 6767  cosmic 02-10     # Missing APAs 4-6
+  7277  cosmic 03-21     # Missing FEMBs
   7559  cosmic 04-11
   7604  pulser 04-16p
 # 7605  pulser 04-16p    # DAC=2
+  7912  cosmic 05-15     # Missing FEMBs
+  7936  cosmic 05-21
+#  7941  cosmic 05-21'
+  8193  cosmic 06-07
   8902  cosmic 07-17     # Just before LAr contamination
 # 9070  cosmic 07-26     # After LAr contamination
 # 9337  cosmic 08-21     # Purity still low
   9701  cosmic 09-23     # Purity recovered
+  9852  cosmic 10-16
  10489  pulser 11-28p
 #10491  pulser           # DAC=2
+###### 2020 #####
  10778  cosmic 01-21
+# 11035  cosmic 03-07     # Missing FEMBs
  11036  cosmic 03-07     # Missing FEMBs
+#11037  cosmic 03-08     # Missing FEMBS
+#11038  cosmic 03-09     # Missing APA 2
+#11046  cosmic 03-10     # Missing FEMBS
  11142  cosmic 04-24
  11204  cosmic 05-08
 #11296  cosmic 05-26     # APA3 charging up
