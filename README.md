@@ -9,7 +9,7 @@ cryostat-side wires or when the HV or purity are low.
 ## Processing data
 
 The first step is to generate graphs of RMS vs. channel for the runs of interest.
-Example command to generate these plots may be found in [runjobs.nxt].
+Example command to generate these plots may be found in [runjobs.nxt](runjobs.nxt).
 
 The script [listBad.C] may then be used to generate plots of RMS vs. run for each APA plane.
 The plots have green bands indicating the range where the central 90% of values for the plane lie.
